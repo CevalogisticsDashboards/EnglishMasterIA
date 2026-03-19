@@ -710,7 +710,7 @@ function Flashcards({cards,setCards,onXP}){
               <span style={{fontSize:12,fontWeight:700,color:'#818cf8',marginLeft:'auto'}}>{cur.word}</span>
               <button style={{background:'none',border:'none',color:'#4f46e5',padding:'4px 4px 4px 8px',cursor:'pointer',display:'flex'}} onClick={e=>{e.stopPropagation();spk(cur.sentence);}}>{I.vol}</button>
             </div>
-            <p style={{fontSize:16,fontWeight:500,color:T.t1,lineHeight:1.7,flex:1,display:'flex',alignItems:'center',textAlign:'center'}}>
+            <p style={{fontSize:13,fontWeight:400,color:T.t1,lineHeight:1.65,flex:1,display:'flex',alignItems:'center',textAlign:'center',margin:'0 auto',maxWidth:'100%'}}>
               {hlSentence(cur.sentence,cur.word)}
             </p>
             <p style={{fontSize:12,color:T.t5,marginTop:14}}>Toque para ver tradução e explicações</p>
