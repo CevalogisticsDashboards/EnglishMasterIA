@@ -10,9 +10,10 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
-body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:15px;transition:background .3s,color .3s}
+html{height:100%}
+body{height:100%;font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:15px;transition:background .3s,color .3s}
 #root{height:100%;display:flex;flex-direction:column}
+.sa{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 /* ── DARK vars ── */
 :root{
   --bg:#080c18;--bg2:rgba(8,12,24,.96);--bg3:rgba(13,16,31,.98);
@@ -270,7 +271,6 @@ function Login({onLogin}){
       <div className="orb" style={{width:280,height:280,background:orbBg('124,58,237'),bottom:0,right:'-60px',animation:'o2 10s ease-in-out infinite'}}/>
       <div className="orb" style={{width:200,height:200,background:orbBg('6,214,160'),bottom:'30%',left:'10%',animation:'o3 12s ease-in-out infinite'}}/>
       <div style={{position:'absolute',inset:0,backgroundImage:`linear-gradient(rgba(99,102,241,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.05) 1px,transparent 1px)`,backgroundSize:'40px 40px',pointerEvents:'none'}}/>
-      <button className="thbtn" onClick={toggle} style={{position:'absolute',top:16,right:16,zIndex:10}}>{isDark?I.sun:I.moon}</button>
       <div className="bi" style={{position:'relative',zIndex:10,width:'100%',maxWidth:400,padding:'0 20px'}}>
         <div style={{textAlign:'center',marginBottom:32}}>
           <div style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:64,height:64,borderRadius:20,background:'linear-gradient(135deg,#4f46e5,#7c3aed)',boxShadow:'0 12px 40px rgba(79,70,229,.4)',marginBottom:16,animation:'fl 3s ease-in-out infinite'}}><span style={{fontSize:28}}>🎓</span></div>
@@ -873,6 +873,7 @@ function Videos(){
   const[capLoading,setCapLoading]=useState(false);
   const[playerState,setPlayerState]=useState('idle');// idle|loading|playing|paused|ended|error
   const[err,setErr]=useState('');
+  const[wordFoundAt,setWordFoundAt]=useState(null);// seconds where word first appears
   const ytRef=useRef(null);
   const syncRef=useRef(null);
   const capsRef=useRef([]);
@@ -976,7 +977,7 @@ function Videos(){
     stopSync();
     setCaptions([]);setActiveCap('');setCapHist([]);
     capsRef.current=[];capHistRef.current=[];
-    setPlayerState('loading');
+    setPlayerState('loading');setWordFoundAt(null);
     setIdx(newIdx);
   };
 
@@ -989,43 +990,84 @@ function Videos(){
     }else{
       // player not ready yet, buildPlayer will handle it
     }
-    fetchCaptions(v.id);
+    fetchCaptions(v.id,searchQ);
   },[idx]);// eslint-disable-line
 
-  const fetchCaptions=async(videoId)=>{
-    setCapLoading(true);
-    capsRef.current=[];
-    // Try manual then auto-generated captions via two CORS proxies
-    const tryFetch=async(url)=>{
-      const proxies=[
-        `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-      ];
-      for(const p of proxies){
+  const seekToWord=useCallback((caps,word)=>{
+    if(!caps.length||!word)return;
+    const re=new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
+    const hit=caps.find(cap=>re.test(cap.t));
+    if(hit){
+      const seekT=Math.max(0,hit.s-10);
+      setWordFoundAt(hit.s);
+      try{if(ytRef.current?.seekTo){ytRef.current.seekTo(seekT,true);}}catch(e){}
+    }else{
+      setWordFoundAt(-1);// word not found in captions
+    }
+  },[]);
+
+  const parseCaptions=(evts)=>{
+    if(!evts||!evts.length)return null;
+    const parsed=evts
+      .filter(ev=>ev.segs&&ev.tStartMs!=null)
+      .map(ev=>({
+        s:ev.tStartMs/1000,
+        d:(ev.dDurationMs||3000)/1000,
+        t:ev.segs.map(s=>(s.utf8||'').replace(/\n/g,' ').replace(/\u200b/g,'')).join('').trim()
+      }))
+      .filter(ev=>ev.t.length>1);
+    return parsed.length>3?parsed:null;
+  };
+
+  const fetchCaptions=async(videoId,word)=>{
+    setCapLoading(true);setCaptions([]);setWordFoundAt(null);
+    capsRef.current=[];capHistRef.current=[];
+    setActiveCap('');setCapHist([]);
+
+    const PROXIES=[
+      u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+      u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u=>`https://corsproxy.org/?${encodeURIComponent(u)}`,
+      u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    ];
+    const URLS=[
+      `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3`,
+      `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&kind=asr&fmt=json3`,
+      `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en-US&fmt=json3`,
+      `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en-GB&fmt=json3`,
+      `https://www.youtube.com/api/timedtext?v=${videoId}&tlang=en&fmt=json3`,
+    ];
+
+    for(const ytUrl of URLS){
+      for(const mkProxy of PROXIES){
+        const proxyUrl=mkProxy(ytUrl);
         try{
-          const r=await fetch(p,{signal:AbortSignal.timeout(6000)});
+          const ctrl=new AbortController();
+          const tid=setTimeout(()=>ctrl.abort(),7000);
+          const r=await fetch(proxyUrl,{signal:ctrl.signal});
+          clearTimeout(tid);
           if(!r.ok)continue;
           const txt=await r.text();
-          if(!txt||txt.length<20||txt.trim()==='{}')continue;
-          const d=JSON.parse(txt);
-          if(!d.events||!d.events.length)continue;
-          const parsed=d.events
-            .filter(ev=>ev.segs&&ev.tStartMs!=null)
-            .map(ev=>({
-              s:ev.tStartMs/1000,
-              d:(ev.dDurationMs||3000)/1000,
-              t:ev.segs.map(s=>(s.utf8||'').replace(/\n/g,' ')).join('').trim()
-            }))
-            .filter(ev=>ev.t.length>2);
-          if(parsed.length>5)return parsed;
-        }catch(e){}
+          if(!txt||txt.length<30)continue;
+          // strip potential JSONP wrapper or BOM
+          const clean=txt.trim().replace(/^[^{\[]+/,'').replace(/[^}\]]+$/,'');
+          let d;
+          try{d=JSON.parse(clean);}catch{try{d=JSON.parse(txt);}catch{continue;}}
+          const parsed=parseCaptions(d?.events);
+          if(parsed){
+            capsRef.current=parsed;
+            setCaptions(parsed);
+            setCapLoading(false);
+            // Seek player to 10s before first occurrence of the word
+            if(word){
+              // Wait a moment for player to be in playing state
+              setTimeout(()=>seekToWord(parsed,word),800);
+            }
+            return;
+          }
+        }catch(e){if(e.name==='AbortError')continue;continue;}
       }
-      return null;
-    };
-    const manual=await tryFetch(`https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3`);
-    if(manual){capsRef.current=manual;setCaptions(manual);setCapLoading(false);return;}
-    const asr=await tryFetch(`https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&kind=asr&fmt=json3`);
-    if(asr){capsRef.current=asr;setCaptions(asr);setCapLoading(false);return;}
+    }
     setCapLoading(false);
   };
 
@@ -1034,7 +1076,7 @@ function Videos(){
     destroyPlayer();
     setSearchQ(trimQ);setLoading(true);setErr('');
     setVideos([]);setIdx(0);setCaptions([]);setActiveCap('');setCapHist([]);
-    capsRef.current=[];capHistRef.current=[];setPlayerState('idle');
+    capsRef.current=[];capHistRef.current=[];setPlayerState('idle');setWordFoundAt(null);
     const k=yKey();
     let vids=[];
     if(k){
@@ -1105,7 +1147,7 @@ function Videos(){
     setVideos(vids);
     setLoading(false);
     setTimeout(()=>{
-      if(vids.length){buildPlayer(vids[0].id);fetchCaptions(vids[0].id);}
+      if(vids.length){buildPlayer(vids[0].id);fetchCaptions(vids[0].id,trimQ);}
     },200);
   };
 
@@ -1222,27 +1264,31 @@ function Videos(){
 
       {/* Legendas */}
       <div style={{borderRadius:14,overflow:'hidden',background:T.g3,border:`1px solid ${T.g4}`}}>
-        <div style={{padding:'10px 14px',borderBottom:`1px solid ${T.g4}`,display:'flex',alignItems:'center',gap:8}}>
-          <div style={{width:7,height:7,borderRadius:'50%',background:activeCap?'#06d6a0':'#374151',transition:'background .3s',boxShadow:activeCap?'0 0 8px #06d6a0':'none'}}/>
+        <div style={{padding:'10px 14px',borderBottom:`1px solid ${T.g4}`,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:activeCap?'#06d6a0':'#374151',transition:'background .3s',boxShadow:activeCap?'0 0 8px #06d6a0':'none',flexShrink:0}}/>
           <span style={{fontSize:11,fontWeight:700,color:T.t4,textTransform:'uppercase',letterSpacing:'.06em'}}>Legendas ao vivo</span>
           {capLoading&&<span style={{marginLeft:'auto',fontSize:11,color:T.t5,display:'flex',alignItems:'center',gap:4}}>{I.ld} buscando...</span>}
-          {!capLoading&&captions.length>0&&<span style={{marginLeft:'auto',fontSize:10,color:T.t5,background:T.g4,padding:'2px 7px',borderRadius:20}}>✓ {captions.length} seg.</span>}
-          {!capLoading&&captions.length===0&&<span style={{marginLeft:'auto',fontSize:10,color:'#f87171'}}>indisponíveis</span>}
+          {!capLoading&&captions.length>0&&wordFoundAt>0&&(
+            <span style={{marginLeft:'auto',fontSize:11,color:'#4ade80',display:'flex',alignItems:'center',gap:4}}>
+              ⏩ Palavra em {Math.floor(wordFoundAt/60)}:{String(Math.floor(wordFoundAt%60)).padStart(2,'0')}
+            </span>
+          )}
+          {!capLoading&&captions.length>0&&wordFoundAt===null&&<span style={{marginLeft:'auto',fontSize:10,color:T.t5,background:T.g4,padding:'2px 7px',borderRadius:20}}>✓ {captions.length} seg.</span>}
+          {!capLoading&&captions.length>0&&wordFoundAt===-1&&<span style={{marginLeft:'auto',fontSize:10,color:'#f59e0b'}}>⚠ Palavra não encontrada</span>}
+          {!capLoading&&captions.length===0&&<span style={{marginLeft:'auto',fontSize:10,color:'#f87171'}}>indisponíveis neste vídeo</span>}
         </div>
         <div style={{padding:'14px 16px',minHeight:88,display:'flex',flexDirection:'column',justifyContent:'center',gap:6}}>
-          {/* Legenda anterior (contexto, mais escura) */}
           {capHist.length>1&&(
             <p style={{fontSize:13,color:T.t5,lineHeight:1.7,opacity:.5,borderLeft:'2px solid '+T.g4,paddingLeft:10}}>{hlWord(capHist[capHist.length-2],searchQ)}</p>
           )}
-          {/* Legenda ativa */}
           {activeCap?(
             <p style={{fontSize:17,color:T.t1,lineHeight:1.75,fontWeight:500,borderLeft:'3px solid #4f46e5',paddingLeft:12}}>{hlWord(activeCap,searchQ)}</p>
           ):(
-            <p style={{fontSize:13,color:T.t5,fontStyle:'italic',textAlign:'center',paddingTop:4}}>
-              {capLoading?'Buscando legendas...':
-               captions.length>0?'Aguardando fala...':
+            <p style={{fontSize:13,color:T.t5,fontStyle:'italic',textAlign:'center',paddingTop:4,lineHeight:1.6}}>
+              {capLoading?'Buscando legendas…':
+               captions.length>0?'⏳ Aguardando a fala…':
                playerState==='error'?'—':
-               'Legenda não disponível para este vídeo via API.'}
+               <span>Legendas não disponíveis via API neste vídeo.<br/><span style={{fontSize:11,color:T.t6}}>Tente o próximo →</span></span>}
             </p>
           )}
         </div>
@@ -1286,7 +1332,7 @@ function Tutor({onXP}){
         </div>
         <div><div style={{fontWeight:800,fontSize:15,color:T.t1}}>Max — Tutor de Inglês</div><div style={{fontSize:11,color:'#06d6a0'}}>Online · Gemini 2.5 Flash</div></div>
       </div>
-      <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:12,paddingBottom:8,minHeight:0}}>
+      <div className="sa" style={{flex:1,display:'flex',flexDirection:'column',gap:12,paddingBottom:8,minHeight:0}}>
         {msgs.map(msg=>(
           <div key={msg.id} style={{display:'flex',gap:8,flexDirection:msg.r==='user'?'row-reverse':'row',alignItems:'flex-end'}}>
             <div style={{width:30,height:30,borderRadius:10,background:msg.r==='assistant'?'linear-gradient(135deg,#4f46e5,#7c3aed)':T.g3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:14,border:`1px solid ${T.g4}`}}>{msg.r==='assistant'?'🤖':'👤'}</div>
@@ -1357,8 +1403,6 @@ function App(){
               </div>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:6}}>
-              {/* Inline theme toggle */}
-              <button className="thbtn" onClick={toggle} title={isDark?'Modo Claro':'Modo Escuro'} style={{animation:'tpop .3s ease'}}>{isDark?I.sun:I.moon}</button>
               <div style={{display:'flex',alignItems:'center',gap:4,padding:'5px 10px',borderRadius:8,background:T.g3,border:`1px solid ${T.g4}`,fontSize:12}}>🔥<span style={{fontWeight:700,color:T.t1}}>{stats.streak}</span></div>
               <div style={{display:'flex',alignItems:'center',gap:4,padding:'5px 10px',borderRadius:8,background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',fontSize:12}}>⚡<span style={{fontWeight:700,color:'#f59e0b'}}>{stats.xp}</span></div>
             </div>
@@ -1372,7 +1416,7 @@ function App(){
           {showSt&&<Settings onClose={()=>setShowSt(false)}/>}
           {showTu&&<Tutorial onClose={()=>setShowTu(false)} onSettings={()=>setShowSt(true)}/>}
           {/* Content */}
-          <div style={{flex:1,overflowY:'auto',padding:'14px 14px 82px',display:'flex',flexDirection:'column'}}>
+          <div className="sa" style={{flex:1,padding:'14px 14px 82px',display:'flex',flexDirection:'column'}}>
             {tab!=='home'&&<h1 style={{fontSize:20,fontWeight:800,marginBottom:16,color:T.t1,letterSpacing:'-.02em'}}>{TITLES[tab]}</h1>}
             {tab==='home'&&<Dashboard stats={stats} cards={cards} setTab={setTab}/>}
             {tab==='flashcards'&&<Flashcards cards={cards} setCards={setCards} onXP={addXP}/>}
