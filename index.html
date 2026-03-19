@@ -180,13 +180,25 @@ const EXERCISES=[
 // ==================================
 const gKey=()=>localStorage.getItem('gemini_api_key')||'';
 const yKey=()=>localStorage.getItem('youtube_api_key')||'';
-async function callGemini(contents,sys='',max=500){
-  const k=gKey();if(!k)throw new Error('⚙️ Chave Gemini não configurada. Acesse Configurações.');
-  const body={contents,generationConfig:{maxOutputTokens:max}};
+async function callGemini(contents,sys='',max=5000){
+  const k=gKey();
+  if(!k)throw new Error('⚙️ Chave Gemini não configurada. Acesse Configurações → Salvar.');
+  const body={
+    contents,
+    generationConfig:{maxOutputTokens:max,thinkingConfig:{thinkingBudget:0}},
+  };
   if(sys)body.systemInstruction={parts:[{text:sys}]};
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${k}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const d=await r.json();if(d.error)throw new Error(d.error.message);
-  return d.candidates?.[0]?.content?.parts?.[0]?.text||'';
+  const r=await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${k}`,
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}
+  );
+  const d=await r.json();
+  if(d.error)throw new Error(`Gemini: ${d.error.message||d.error.status}`);
+  // Extract text — skip thinking parts (type='thinking')
+  const parts=d.candidates?.[0]?.content?.parts||[];
+  const text=parts.filter(p=>p.text&&!p.thought).map(p=>p.text).join('');
+  if(!text)throw new Error('Gemini não retornou resposta. Tente novamente.');
+  return text;
 }
 const genCard=async w=>{
   const prompt=`Create a phrase-based English flashcard focused on the word/expression: "${w}"
