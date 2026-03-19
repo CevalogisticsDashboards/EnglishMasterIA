@@ -36,10 +36,10 @@ body{background:var(--bg);color:var(--t2)}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--sc);border-radius:2px}
 .gl{background:var(--g1);border:1px solid var(--g2);backdrop-filter:blur(12px)}
 .card-wrap{perspective:1000px}
-.card-inner{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.4,0,.2,1);transform-style:preserve-3d}
+.card-inner{position:relative;width:100%;transition:transform .55s cubic-bezier(.4,0,.2,1);transform-style:preserve-3d}
 .card-inner.fl{transform:rotateY(180deg)}
-.cf{position:absolute;width:100%;height:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:16px;border:1px solid var(--g2)}
-.cbf{transform:rotateY(180deg)}
+.cf{width:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:16px;border:1px solid var(--g2)}
+.cbf{transform:rotateY(180deg);position:absolute;top:0;left:0}
 @keyframes sU{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes sL{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 @keyframes fI{from{opacity:0}to{opacity:1}}
@@ -147,13 +147,14 @@ let _i=0;const uid=()=>'c'+(++_i)+Math.random().toString(36).slice(2,6);
 // ==================================
 // DADOS PADRÃO
 // ==================================
+// Card shape: { id, word(focus), sentence, sentence_pt, level, keywords:[{w,meaning,tip}], interval, easeFactor, repetitions, dueDate, lastReviewed }
 const DECK=[
-  {id:uid(),word:'nevertheless',phonetic:'/ˌnevəðəˈles/',partOfSpeech:'adverb',definition:'In spite of that; however',translation_pt:'no entanto, mesmo assim',example:'The weather was awful. Nevertheless, we continued the hike.',example_pt:'O tempo estava horrível. Mesmo assim, continuamos.',level:'B2',tip:'Mais formal e elegante do que "but"',interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
-  {id:uid(),word:'procrastinate',phonetic:'/prəˈkræstɪneɪt/',partOfSpeech:'verb',definition:'To delay or postpone doing something',translation_pt:'procrastinar, adiar',example:'I keep procrastinating on finishing this report.',example_pt:'Fico adiando para terminar o relatório.',level:'B2',tip:'Pro+crastinus (Latim: amanhã) = sempre empurrando para amanhã!',interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
-  {id:uid(),word:'resilient',phonetic:'/rɪˈzɪliənt/',partOfSpeech:'adjective',definition:'Able to recover quickly from difficulties',translation_pt:'resiliente, que se recupera rápido',example:'Children are often more resilient than adults.',example_pt:'Crianças são frequentemente mais resilientes que adultos.',level:'B2',tip:'Como um elástico — estica mas volta ao normal!',interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
-  {id:uid(),word:'serendipity',phonetic:'/ˌserənˈdɪpɪti/',partOfSpeech:'noun',definition:'Finding something good by happy accident',translation_pt:'serendipidade, feliz acaso',example:'Meeting him was pure serendipity.',example_pt:'Encontrá-lo foi pura serendipidade.',level:'C1',tip:'De um conto sobre príncipes que faziam descobertas por acidente!',interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
-  {id:uid(),word:'overwhelmed',phonetic:'/ˌoʊvərˈwelmd/',partOfSpeech:'adjective',definition:'Feeling too much to handle',translation_pt:'sobrecarregado, oprimido',example:'She felt completely overwhelmed by the new job.',example_pt:'Ela se sentiu completamente sobrecarregada.',level:'B1',tip:'Como uma onda quebrando em cima de você!',interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
-  {id:uid(),word:'breakthrough',phonetic:'/ˈbreɪkθruː/',partOfSpeech:'noun',definition:'An important development after a long effort',translation_pt:'avanço, grande conquista',example:'Scientists made a major breakthrough.',example_pt:'Cientistas fizeram um grande avanço.',level:'B2',tip:'Quebrar ATRAVÉS de uma barreira — superar um obstáculo!',interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
+  {id:uid(),word:'nevertheless',sentence:'The project was a disaster. Nevertheless, the team refused to give up and kept pushing forward.',sentence_pt:'O projeto foi um desastre. Mesmo assim, a equipe se recusou a desistir e continuou avançando.',level:'B2',keywords:[{w:'nevertheless',meaning:'no entanto, mesmo assim',tip:'Conectivo formal — mais elegante que "but" para contrastar ideias'},{w:'disaster',meaning:'desastre, fracasso total',tip:'Pode ser usado de forma dramática no dia a dia também'},{w:'refused',meaning:'se recusou, negou-se',tip:'refuse to do = negar-se a fazer algo'},{w:'pushing forward',meaning:'avançando, persistindo',tip:'Expressão idiomática para continuar com determinação'}],interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
+  {id:uid(),word:'procrastinate',sentence:"I always procrastinate when it comes to difficult tasks, but deadlines have a funny way of curing that.",sentence_pt:'Eu sempre fico adiando quando se trata de tarefas difíceis, mas os prazos têm uma forma engraçada de curar isso.',level:'B2',keywords:[{w:'procrastinate',meaning:'procrastinar, adiar tarefas',tip:'Hábito de empurrar tarefas para depois — muito comum!'},{w:'when it comes to',meaning:'quando se trata de, no que diz respeito a',tip:'Expressão super útil para mudar de assunto'},{w:'deadlines',meaning:'prazos, datas limite',tip:'Dead + line = "linha morta" — sem volta quando passa!'},{w:'curing',meaning:'curando, resolvendo',tip:'Cure usado figurativamente = resolver um problema'}],interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
+  {id:uid(),word:'overwhelmed',sentence:"She felt completely overwhelmed by the amount of work on her plate, so she broke it into smaller chunks.",sentence_pt:'Ela se sentiu completamente sobrecarregada com a quantidade de trabalho, então dividiu em partes menores.',level:'B1',keywords:[{w:'overwhelmed',meaning:'sobrecarregado, oprimido',tip:'Como uma onda quebrando em cima de você — tudo de uma vez!'},{w:'on her plate',meaning:'sob sua responsabilidade, para ela resolver',tip:'Idiom: "a lot on my plate" = muita coisa para lidar'},{w:'broke it into',meaning:'dividiu em, separou em',tip:'Break into = dividir algo maior em partes'},{w:'chunks',meaning:'pedaços, partes, blocos',tip:'Chunks = porções — muito usado em inglês informal'}],interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
+  {id:uid(),word:'serendipity',sentence:"It was pure serendipity — I stumbled upon the perfect job offer while looking for something else entirely.",sentence_pt:'Foi pura serendipidade — me deparei com a oferta de emprego perfeita enquanto procurava outra coisa.',level:'C1',keywords:[{w:'serendipity',meaning:'serendipidade, descoberta feliz por acaso',tip:'De um conto sobre príncipes que sempre encontravam coisas por acidente'},{w:'stumbled upon',meaning:'se deparou com, encontrou por acaso',tip:'Stumble = tropeçar — "tropeçar em algo" = encontrar sem querer'},{w:'entirely',meaning:'inteiramente, completamente',tip:'Reforça que era algo completamente diferente'},{w:'job offer',meaning:'oferta de emprego',tip:'Combinação muito frequente no inglês profissional'}],interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
+  {id:uid(),word:'resilient',sentence:"Children are incredibly resilient — they bounce back from setbacks that would crush most adults.",sentence_pt:'As crianças são incrivelmente resilientes — elas se recuperam de contratempos que esmagariam a maioria dos adultos.',level:'B2',keywords:[{w:'resilient',meaning:'resiliente, que se recupera rápido',tip:'Como um elástico: estica mas volta ao normal'},{w:'bounce back',meaning:'se recuperar, voltar ao normal',tip:'Phrasal verb essencial — "bounce" = quicar, rebater'},{w:'setbacks',meaning:'contratempos, reveses',tip:'Set + back = algo que te "joga pra trás" no progresso'},{w:'crush',meaning:'esmagar, destruir (emocionalmente)',tip:'Usado figurativamente para situações devastadoras'}],interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
+  {id:uid(),word:'breakthrough',sentence:"After years of failed experiments, the scientists finally had a breakthrough that changed everything.",sentence_pt:'Após anos de experimentos fracassados, os cientistas finalmente tiveram um avanço que mudou tudo.',level:'B2',keywords:[{w:'breakthrough',meaning:'avanço decisivo, grande conquista',tip:'Break + through = quebrar ATRAVÉS de uma barreira'},{w:'failed experiments',meaning:'experimentos fracassados, tentativas malsucedidas',tip:'Failed como adjetivo = que falhou, malsucedido'},{w:'finally',meaning:'finalmente, por fim',tip:'Indica que algo demorou muito para acontecer'},{w:'changed everything',meaning:'mudou tudo, transformou completamente',tip:'Expressão de impacto total — muito usada em narrativas'}],interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null},
 ];
 const TEXTS=[
   {id:'t1',title:'The Science of Sleep',level:'B1',topic:'Science & Health',
@@ -188,7 +189,22 @@ async function callGemini(contents,sys='',max=500){
   return d.candidates?.[0]?.content?.parts?.[0]?.text||'';
 }
 const genCard=async w=>{
-  const t=await callGemini([{role:'user',parts:[{text:`Flashcard for "${w}". Return ONLY JSON:\n{"word":"${w}","phonetic":"/.../","partOfSpeech":"...","definition":"...","translation_pt":"...","example":"...","example_pt":"...","level":"B1","tip":"..."}`}]}],'',400);
+  const prompt=`Create a phrase-based English flashcard focused on the word/expression: "${w}"
+The card must contain a SENTENCE that uses "${w}" naturally in context.
+Return ONLY valid JSON (no markdown):
+{
+  "word": "${w}",
+  "sentence": "A natural English sentence using '${w}' in real context (1-2 sentences max)",
+  "sentence_pt": "Complete Portuguese translation of the sentence",
+  "level": "A2|B1|B2|C1",
+  "keywords": [
+    { "w": "${w}", "meaning": "Portuguese translation + brief meaning", "tip": "Memory tip or usage note in Portuguese" },
+    { "w": "another_key_word_from_sentence", "meaning": "Portuguese translation", "tip": "Brief note" },
+    { "w": "another_key_word_or_expression", "meaning": "Portuguese translation", "tip": "Brief note" }
+  ]
+}
+Include 3-4 keywords total (the focus word plus 2-3 other interesting words/expressions from the sentence).`;
+  const t=await callGemini([{role:'user',parts:[{text:prompt}]}],'You are an expert English teacher creating contextual phrase flashcards for Brazilian students.',600);
   const m=t.match(/\{[\s\S]*\}/);if(!m)throw new Error('Parse error');return JSON.parse(m[0]);
 };
 const explainWord=(w,ctx)=>callGemini([{role:'user',parts:[{text:`Explain "${w}"${ctx?` in context: "${ctx}"`:''}. Meaning, 🇧🇷 PT translation, usage tip. Concise.`}]}],'Friendly English tutor for Brazilians.',300);
@@ -552,19 +568,43 @@ function Flashcards({cards,setCards,onXP}){
   const[idx,setIdx]=useState(0);const[flip,setFlip]=useState(false);
   const[showAdd,setShowAdd]=useState(false);const[addW,setAddW]=useState('');const[addTab,setAddTab]=useState('ai');
   const[ld,setLd]=useState(false);const[err,setErr]=useState('');
-  const[man,setMan]=useState({word:'',definition:'',translation_pt:'',example:''});
+  const[man,setMan]=useState({word:'',sentence:'',sentence_pt:''});
   const[sess,setSess]=useState({done:0,ok:0});const[done,setDone]=useState(false);
   const due=useMemo(()=>getDue(cards),[cards]);const cur=due[idx];
-  const spk=t=>{if('speechSynthesis'in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.85;speechSynthesis.speak(u);}};
+  const spk=t=>{if('speechSynthesis'in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.8;speechSynthesis.speak(u);}};
   const rate=r=>{
     setCards(p=>p.map(c=>c.id===cur.id?{...c,...calcNext(cur,r)}:c));
     const ns={done:sess.done+1,ok:sess.ok+(r>=3?1:0)};setSess(ns);
     if(r>=3)onXP(r===4?15:r===3?10:5);
     if(idx+1>=due.length)setDone(true);else{setIdx(i=>i+1);setFlip(false);}
   };
-  const doGen=async()=>{if(!addW.trim())return;setLd(true);setErr('');try{const d=await genCard(addW.trim());setCards(p=>[...p,{...d,id:uid(),interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null}]);setAddW('');setShowAdd(false);}catch(e){setErr('Erro: '+e.message);}setLd(false);};
-  const doMan=()=>{if(!man.word||!man.definition)return;setCards(p=>[...p,{id:uid(),...man,interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null}]);setMan({word:'',definition:'',translation_pt:'',example:''});setShowAdd(false);};
+  const doGen=async()=>{
+    if(!addW.trim())return;setLd(true);setErr('');
+    try{
+      const d=await genCard(addW.trim());
+      setCards(p=>[...p,{...d,id:uid(),interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null}]);
+      setAddW('');setShowAdd(false);
+    }catch(e){setErr('Erro: '+e.message);}
+    setLd(false);
+  };
+  const doMan=()=>{
+    if(!man.word||!man.sentence)return;
+    setCards(p=>[...p,{id:uid(),...man,keywords:[],level:'B1',interval:1,easeFactor:2.5,repetitions:0,dueDate:null,lastReviewed:null}]);
+    setMan({word:'',sentence:'',sentence_pt:''});setShowAdd(false);
+  };
 
+  // Highlight focus word in sentence
+  const hlSentence=(sentence,focusWord)=>{
+    if(!sentence||!focusWord)return sentence;
+    const re=new RegExp(`(${focusWord.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    return sentence.split(re).map((p,i)=>
+      p.toLowerCase()===focusWord.toLowerCase()
+        ?<mark key={i} style={{background:'rgba(129,140,248,.25)',color:'#818cf8',borderRadius:4,padding:'1px 3px',fontWeight:800,fontStyle:'normal'}}>{p}</mark>
+        :p
+    );
+  };
+
+  // ── LIST VIEW ──
   if(mode==='list')return(
     <div className="su" style={{display:'flex',flexDirection:'column',gap:12}}>
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10}}>
@@ -576,7 +616,7 @@ function Flashcards({cards,setCards,onXP}){
       </div>
       <div style={{background:T.g1,border:`1px solid ${T.g2}`,borderRadius:16,padding:16}}>
         <div style={{fontWeight:700,fontSize:15,color:T.t1,marginBottom:4}}>{due.length>0?`${due.length} card${due.length>1?'s':''} para revisão`:'Tudo em dia! 🎉'}</div>
-        <div style={{fontSize:13,color:T.t4,marginBottom:12}}>{due.length>0?'Revise agora para fortalecer a memória':'Volte amanhã para a próxima sessão'}</div>
+        <div style={{fontSize:13,color:T.t4,marginBottom:12}}>{due.length>0?'Revise as frases para fortalecer a memória':'Volte amanhã para a próxima sessão'}</div>
         <div style={{display:'flex',gap:8}}>
           <button className="btn btg" style={{flex:1,justifyContent:'center'}} onClick={()=>setShowAdd(true)}>{I.plus} Adicionar</button>
           {due.length>0&&<button className="btn" style={{flex:1,justifyContent:'center'}} onClick={()=>{setIdx(0);setFlip(false);setSess({done:0,ok:0});setDone(false);setMode('review');}}>Revisar →</button>}
@@ -584,15 +624,21 @@ function Flashcards({cards,setCards,onXP}){
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {cards.map(c=>(
-          <div key={c.id} style={{background:T.g1,border:`1px solid ${T.g2}`,borderRadius:12,padding:'13px 16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div style={{minWidth:0,flex:1}}><div style={{fontWeight:700,fontSize:14,color:T.t1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.word}</div><div style={{fontSize:12,color:T.t4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{c.translation_pt||c.definition}</div></div>
-            <div style={{display:'flex',gap:5,marginLeft:10}}>
-              {c.level&&<span className="tag" style={{background:T.tb,color:T.tc,border:`1px solid ${T.td}`}}>{c.level}</span>}
-              <span className="tag" style={{background:!c.lastReviewed?'rgba(245,158,11,.12)':T.g3,color:!c.lastReviewed?'#f59e0b':T.t4,border:`1px solid ${!c.lastReviewed?'rgba(245,158,11,.2)':T.g4}`}}>{!c.lastReviewed?'Novo':`${c.interval||1}d`}</span>
+          <div key={c.id} style={{background:T.g1,border:`1px solid ${T.g2}`,borderRadius:12,padding:'13px 16px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8,marginBottom:6}}>
+              <span style={{fontWeight:700,fontSize:13,color:'#818cf8'}}>{c.word}</span>
+              <div style={{display:'flex',gap:5,flexShrink:0}}>
+                {c.level&&<span className="tag" style={{background:T.tb,color:T.tc,border:`1px solid ${T.td}`}}>{c.level}</span>}
+                <span className="tag" style={{background:!c.lastReviewed?'rgba(245,158,11,.12)':T.g3,color:!c.lastReviewed?'#f59e0b':T.t4,border:`1px solid ${!c.lastReviewed?'rgba(245,158,11,.2)':T.g4}`}}>{!c.lastReviewed?'Novo':`${c.interval||1}d`}</span>
+              </div>
             </div>
+            <p style={{fontSize:13,color:T.t2,lineHeight:1.55,fontStyle:'italic'}}>{hlSentence(c.sentence,c.word)}</p>
+            {c.sentence_pt&&<p style={{fontSize:12,color:T.t4,marginTop:4,lineHeight:1.5}}>🇧🇷 {c.sentence_pt}</p>}
           </div>
         ))}
       </div>
+
+      {/* Add Card Modal */}
       {showAdd&&(
         <div style={{position:'fixed',inset:0,zIndex:200,display:'flex',alignItems:'flex-end',justifyContent:'center'}} onClick={()=>setShowAdd(false)}>
           <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,.6)',backdropFilter:'blur(4px)'}}/>
@@ -609,17 +655,17 @@ function Flashcards({cards,setCards,onXP}){
             </div>
             {addTab==='ai'?(
               <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                <p style={{fontSize:13,color:T.t4,lineHeight:1.6}}>Digite uma palavra e a IA cria um card completo com definição, tradução, exemplo e dica.</p>
-                <input className="inp" placeholder="Ex: serendipity, give up..." value={addW} onChange={e=>setAddW(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doGen()}/>
+                <p style={{fontSize:13,color:T.t4,lineHeight:1.6}}>Digite uma palavra ou expressão. A IA cria uma <strong style={{color:T.t1}}>frase em contexto</strong> + tradução + palavras-chave explicadas.</p>
+                <input className="inp" placeholder="Ex: give up, resilient, serendipity..." value={addW} onChange={e=>setAddW(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doGen()}/>
                 {err&&<p style={{fontSize:12,color:'#f87171',padding:'8px 12px',borderRadius:8,background:'rgba(248,113,113,.08)',border:'1px solid rgba(248,113,113,.2)'}}>{err}</p>}
-                <button className="btn" style={{width:'100%',justifyContent:'center',opacity:ld||!addW.trim()?.5:1}} onClick={doGen} disabled={ld||!addW.trim()}>{ld?<>{I.ld} Gerando...</>:'✨ Gerar com Gemini IA'}</button>
+                <button className="btn" style={{width:'100%',justifyContent:'center',opacity:ld||!addW.trim()?.5:1}} onClick={doGen} disabled={ld||!addW.trim()}>{ld?<>{I.ld} Gerando frase...</>:'✨ Gerar com Gemini IA'}</button>
               </div>
             ):(
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                {[['word','Palavra *'],['definition','Definição em inglês *'],['translation_pt','Tradução PT'],['example','Exemplo']].map(([k,l])=>(
-                  <div key={k}><label style={{fontSize:12,color:T.t4,display:'block',marginBottom:5,fontWeight:600}}>{l}</label><input className="inp" value={man[k]} onChange={e=>setMan(m=>({...m,[k]:e.target.value}))}/></div>
+                {[['word','Palavra-foco *','Ex: give up'],['sentence','Frase em inglês *','Ex: I gave up trying to fix it.'],['sentence_pt','Tradução em português','Ex: Desisti de tentar consertar.']].map(([k,l,ph])=>(
+                  <div key={k}><label style={{fontSize:12,color:T.t4,display:'block',marginBottom:5,fontWeight:600}}>{l}</label><input className="inp" placeholder={ph} value={man[k]} onChange={e=>setMan(m=>({...m,[k]:e.target.value}))}/></div>
                 ))}
-                <button className="btn" style={{width:'100%',justifyContent:'center',opacity:!man.word||!man.definition?.5:1}} onClick={doMan} disabled={!man.word||!man.definition}>Adicionar Card</button>
+                <button className="btn" style={{width:'100%',justifyContent:'center',opacity:!man.word||!man.sentence?.5:1}} onClick={doMan} disabled={!man.word||!man.sentence}>Adicionar Card</button>
               </div>
             )}
           </div>
@@ -628,6 +674,7 @@ function Flashcards({cards,setCards,onXP}){
     </div>
   );
 
+  // ── DONE SCREEN ──
   if(done){
     const pct=Math.round((sess.ok/Math.max(sess.done,1))*100);
     return(
@@ -643,49 +690,87 @@ function Flashcards({cards,setCards,onXP}){
     );
   }
   if(!cur){setMode('list');return null;}
+
+  // ── REVIEW CARD ──
   return(
-    <div className="su" style={{display:'flex',flexDirection:'column',gap:16,maxWidth:460,margin:'0 auto',width:'100%'}}>
+    <div className="su" style={{display:'flex',flexDirection:'column',gap:14,maxWidth:480,margin:'0 auto',width:'100%'}}>
+      {/* Progress bar */}
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <button className="btn btg" style={{padding:'8px 12px',fontSize:13}} onClick={()=>setMode('list')}>← Voltar</button>
         <div style={{flex:1,height:5,background:T.g3,borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',background:'linear-gradient(90deg,#4f46e5,#7c3aed)',borderRadius:3,transition:'width .3s',width:`${(idx/due.length)*100}%`}}/></div>
         <span style={{fontSize:13,color:T.t4,fontWeight:600}}>{idx+1}/{due.length}</span>
       </div>
-      <div className="card-wrap" style={{width:'100%',height:290}}>
-        <div className={`card-inner${flip?' fl':''}`}>
-          <div className="cf" style={{background:T.cfb,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}} onClick={()=>setFlip(true)}>
-            {cur.level&&<span className="tag" style={{position:'absolute',top:12,left:12,background:T.tb,color:T.tc,border:`1px solid ${T.td}`}}>{cur.level}</span>}
-            <div style={{fontSize:32,fontWeight:800,color:T.t1,marginBottom:8}}>{cur.word}</div>
-            {cur.phonetic&&<div style={{display:'flex',alignItems:'center',gap:8,color:T.t4,fontSize:14}}>
-              <span style={{fontFamily:"'Space Mono',monospace"}}>{cur.phonetic}</span>
-              <button style={{background:'none',border:'none',color:'#4f46e5',padding:4,cursor:'pointer',display:'flex'}} onClick={e=>{e.stopPropagation();spk(cur.word);}}>{I.vol}</button>
-            </div>}
-            {cur.partOfSpeech&&<span style={{marginTop:10,fontSize:13,color:T.t4,fontStyle:'italic'}}>{cur.partOfSpeech}</span>}
-            <p style={{marginTop:18,fontSize:12,color:T.t5}}>Toque para revelar</p>
+
+      {/* CARD */}
+      <div className="card-wrap" style={{width:'100%',height:flip?'auto':240,minHeight:240}}>
+        <div className={`card-inner${flip?' fl':''}`} style={{height:flip?'auto':240,minHeight:240}}>
+
+          {/* ── FRONT: sentence with highlighted word ── */}
+          <div className="cf" style={{background:T.cfb,display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'20px 22px',cursor:'pointer',minHeight:240}} onClick={()=>{setFlip(true);spk(cur.sentence);}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <span style={{fontSize:11,color:T.t5,textTransform:'uppercase',letterSpacing:'.06em',fontWeight:700}}>Leia a frase</span>
+                <span style={{fontSize:13,fontWeight:700,color:'#818cf8'}}>{cur.word}</span>
+              </div>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                {cur.level&&<span className="tag" style={{background:T.tb,color:T.tc,border:`1px solid ${T.td}`}}>{cur.level}</span>}
+                <button style={{background:'none',border:'none',color:'#4f46e5',padding:4,cursor:'pointer',display:'flex'}} onClick={e=>{e.stopPropagation();spk(cur.sentence);}}>{I.vol}</button>
+              </div>
+            </div>
+            <p style={{fontSize:18,fontWeight:500,color:T.t1,lineHeight:1.65,textAlign:'center',flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px 0'}}>
+              {hlSentence(cur.sentence,cur.word)}
+            </p>
+            <p style={{fontSize:12,color:T.t5,textAlign:'center'}}>Toque para ver tradução e explicações</p>
           </div>
-          <div className="cbf cf" style={{background:T.cbb,borderColor:T.cbd,padding:'16px 18px',overflowY:'auto'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-              <h3 style={{fontSize:20,fontWeight:800,color:'#818cf8'}}>{cur.word}</h3>
-              <button style={{background:'none',border:'none',color:'#4f46e5',padding:4,cursor:'pointer',display:'flex'}} onClick={()=>spk(cur.word)}>{I.vol}</button>
+
+          {/* ── BACK: translation + keywords ── */}
+          <div className="cbf cf" style={{background:T.cbb,borderColor:T.cbd,padding:'18px 20px',overflowY:'auto',minHeight:240,height:'auto',position:'relative'}}>
+            {/* Translation */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:10,color:T.t5,textTransform:'uppercase',letterSpacing:'.06em',fontWeight:700,marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                🇧🇷 Tradução
+                <button style={{background:'none',border:'none',color:'#4f46e5',padding:2,cursor:'pointer',display:'flex',marginLeft:4}} onClick={()=>spk(cur.sentence)}>{I.vol}</button>
+              </div>
+              <p style={{fontSize:15,color:'#06d6a0',fontWeight:600,lineHeight:1.6,fontStyle:'italic'}}>"{cur.sentence_pt}"</p>
             </div>
-            <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              <div><div style={{fontSize:10,color:T.t5,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3,fontWeight:700}}>Definição</div><p style={{fontSize:13,color:T.t2,lineHeight:1.6}}>{cur.definition}</p></div>
-              {cur.translation_pt&&<div><div style={{fontSize:10,color:T.t5,textTransform:'uppercase',marginBottom:3,fontWeight:700}}>🇧🇷 Português</div><p style={{fontSize:13,color:'#06d6a0',fontWeight:700}}>{cur.translation_pt}</p></div>}
-              {cur.example&&<div style={{background:T.exb,borderRadius:10,padding:'10px 12px',borderLeft:'3px solid rgba(79,70,229,.4)'}}><p style={{fontSize:13,color:T.t3,fontStyle:'italic'}}>"{cur.example}"</p>{cur.example_pt&&<p style={{fontSize:12,color:T.t4,marginTop:3}}>{cur.example_pt}</p>}</div>}
-              {cur.tip&&<p style={{fontSize:12,color:T.tpc,display:'flex',gap:6,lineHeight:1.5}}>💡 <span>{cur.tip}</span></p>}
-            </div>
+
+            {/* Keywords */}
+            {cur.keywords&&cur.keywords.length>0&&(
+              <div>
+                <div style={{fontSize:10,color:T.t5,textTransform:'uppercase',letterSpacing:'.06em',fontWeight:700,marginBottom:8}}>📖 Palavras-chave</div>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {cur.keywords.map((kw,i)=>(
+                    <div key={i} style={{background:T.g3,border:`1px solid ${T.g4}`,borderRadius:12,padding:'10px 12px',borderLeft:kw.w.toLowerCase()===cur.word.toLowerCase()?'3px solid #818cf8':'3px solid '+T.g4}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:kw.tip?4:0}}>
+                        <span style={{fontWeight:700,fontSize:14,color:kw.w.toLowerCase()===cur.word.toLowerCase()?'#818cf8':T.t1}}>{kw.w}</span>
+                        <button style={{background:'none',border:'none',color:T.t5,padding:2,cursor:'pointer',display:'flex'}} onClick={()=>spk(kw.w)}>{I.vol}</button>
+                        <span style={{fontSize:13,color:'#06d6a0',marginLeft:'auto',fontWeight:600}}>🇧🇷 {kw.meaning}</span>
+                      </div>
+                      {kw.tip&&<p style={{fontSize:11,color:T.tpc,lineHeight:1.5}}>💡 {kw.tip}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Rating buttons */}
       {flip?(
         <div className="su" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
           {[['Errei','<1d','#f87171','rgba(248,113,113,.08)','rgba(248,113,113,.28)',1],['Difícil','~3d','#fb923c','rgba(251,146,60,.08)','rgba(251,146,60,.28)',2],['Certo','~7d','#818cf8','rgba(99,102,241,.08)','rgba(99,102,241,.28)',3],['Fácil','~14d','#4ade80','rgba(74,222,128,.08)','rgba(74,222,128,.28)',4]].map(([l,s,c,bg,bd,r])=>(
-            <button key={l} onClick={()=>rate(r)} style={{padding:'10px 4px',borderRadius:12,border:`1px solid ${bd}`,background:bg,color:c,fontSize:12,fontWeight:700,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontFamily:'inherit',cursor:'pointer'}}>
+            <button key={l} onClick={()=>rate(r)} style={{padding:'10px 4px',borderRadius:12,border:`1px solid ${bd}`,background:bg,color:c,fontSize:12,fontWeight:700,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontFamily:'inherit',cursor:'pointer',transition:'all .15s'}}
+              onMouseOver={e=>e.currentTarget.style.filter='brightness(1.15)'}
+              onMouseOut={e=>e.currentTarget.style.filter=''}>
               <span>{l}</span><span style={{fontSize:10,opacity:.7}}>{s}</span>
             </button>
           ))}
         </div>
       ):(
-        <button className="btn btg" style={{width:'100%',justifyContent:'center'}} onClick={()=>setFlip(true)}>Toque no card para revelar</button>
+        <button className="btn btg" style={{width:'100%',justifyContent:'center'}} onClick={()=>{setFlip(true);spk(cur.sentence);}}>
+          Toque para revelar tradução e palavras-chave
+        </button>
       )}
     </div>
   );
